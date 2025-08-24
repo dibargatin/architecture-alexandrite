@@ -1,0 +1,60 @@
+@startuml Client Cache
+
+actor Operator
+participant MES
+participant "MES API" as MesAPI
+
+== First Request ==
+
+Operator -> MES : Show Dashboard
+activate MES
+
+MES -> MesAPI : GET api/orders
+activate MesAPI
+
+MesAPI --> MES : 200OK + ETag
+deactivate MesAPI
+
+MES --> Operator : Dashboard
+deactivate MES
+
+== Second Request ==
+
+Operator -> MES : Show Dashboard
+activate MES
+
+MES -> MesAPI : GET api/orders [If-None-Match: {ETag}]
+activate MesAPI
+
+alt ETag is not changed
+
+MesAPI --> MES : 304 NotModified
+
+else ETag is changed
+
+MesAPI --> MES : 200OK + new ETag
+
+end
+
+deactivate MesAPI
+
+MES --> Operator : Dashboard
+deactivate MES
+
+== Invalidate Cache ==
+
+Operator -> MES : Change order
+activate MES
+
+MES -> MesAPI : PATCH api/orders/{id}
+activate MesAPI
+
+MesAPI -> MesAPI : Change ETag
+
+MesAPI --> MES : 200OK
+deactivate MesAPI
+
+MES --> Operator : Changed Order
+deactivate MES
+
+@enduml

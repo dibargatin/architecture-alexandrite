@@ -1,0 +1,60 @@
+@startuml Server Cache-Aside
+
+participant MES
+participant "MES API" as MesAPI
+participant Cache
+participant "MES DB" as MesDB
+
+== Read Orders ==
+
+MES -> MesAPI : GET api/orders
+activate MesAPI
+
+MesAPI -> Cache : Query orders
+activate Cache
+
+alt Cache hit
+
+Cache --> MesAPI : Orders
+deactivate Cache
+
+else Cache miss
+
+MesAPI -> MesDB : Query orders
+activate MesDB
+
+MesDB --> MesAPI : Orders
+deactivate MesDB
+
+MesAPI -> Cache : Put orders into cache
+activate Cache
+
+Cache --> MesAPI : Done!
+deactivate Cache
+
+end
+
+MesAPI --> MES : 200OK
+deactivate MesAPI
+
+== Update Order ==
+
+MES -> MesAPI : PATCH api/orders/{id}
+activate MesAPI
+
+MesAPI -> MesDB : Update order
+activate MesDB
+
+MesDB --> MesAPI : Done!
+deactivate MesDB
+
+MesAPI -> Cache : Invalidate cache
+activate Cache
+
+Cache --> MesAPI : Done!
+deactivate Cache
+
+MesAPI --> MES : 200OK
+deactivate MesAPI
+
+@enduml
